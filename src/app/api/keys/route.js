@@ -1,6 +1,5 @@
-import { appendFile, mkdir } from "node:fs/promises";
-import { resolve } from "node:path";
 import { issueLicenseKey } from "@/lib/license";
+import { recordIssuedKey } from "@/lib/keysStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,17 +23,6 @@ function rateLimited(ip) {
 
 function fail(message, status = 400) {
   return Response.json({ success: false, message }, { status });
-}
-
-// Record of who was issued what — never the key itself.
-async function logIssuedKey(entry) {
-  try {
-    const dir = resolve(/*turbopackIgnore: true*/ process.cwd(), "data");
-    await mkdir(dir, { recursive: true });
-    await appendFile(resolve(dir, "issued-keys.jsonl"), JSON.stringify(entry) + "\n");
-  } catch (err) {
-    console.error("Could not record issued key:", err.message);
-  }
 }
 
 export async function POST(request) {
@@ -64,15 +52,24 @@ export async function POST(request) {
     return fail("Key generation is not available right now.", 500);
   }
 
-  await logIssuedKey({
-    customerId: issued.customerId,
-    name,
-    email,
-    project,
-    plan: issued.plan,
-    issuedAt: new Date().toISOString(),
-    expiresAt: issued.expiresAt,
-  });
+  // Every key must be on record for the admin dashboard: if saving fails,
+  // the key is never handed out.
+  try {
+    await recordIssuedKey({
+      key: issued.key,
+      customerId: issued.customerId,
+      name,
+      email,
+      project,
+      plan: issued.plan,
+      issuedAt: new Date(),
+      expiresAt: issued.expiresAt,
+      ip,
+    });
+  } catch (err) {
+    console.error("Could not record issued key:", err);
+    return fail("Key generation is not available right now.", 500);
+  }
 
   return Response.json({ success: true, data: issued }, { status: 201 });
 }
