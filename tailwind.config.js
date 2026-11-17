@@ -16,6 +16,7 @@ export default {
           800: "#115e59",
           900: "#134e4a",
         },
+        paper: "#faf8f4",
         debit: "#0f766e",
         credit: "#7c3aed",
         positive: "#15803d",
@@ -23,9 +24,11 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)",
+        card: "0 1px 2px 0 rgb(28 25 23 / 0.04), 0 1px 3px 0 rgb(28 25 23 / 0.06)",
       },
       borderRadius: {
         card: "10px",

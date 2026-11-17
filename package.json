@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start -p 3100",
     "admin:password": "node --env-file=.env.local scripts/set-admin-password.js",
-    "keys:import": "node --env-file=.env.local scripts/import-key-log.js",
     "admin:seed": "node --env-file=.env.local scripts/seed-admin.js",
     "admin:hash": "node scripts/hash-password.js"
   },
@@ -17,7 +16,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.451.0",
     "mongodb": "^6.21.0",
-    "next": "^16.4.4",
+    "next": "^16.4.6",
+    "nodemailer": "^7.0.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

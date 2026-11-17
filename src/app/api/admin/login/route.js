@@ -44,6 +44,8 @@ export async function POST(request) {
     return fail("Incorrect email or password.", 401);
   }
 
+  if (tokens.deactivated) return fail("This account has been deactivated.", 403);
+
   failures.delete(ip);
   const headers = new Headers({ "Content-Type": "application/json" });
   for (const c of sessionCookies(tokens)) headers.append("Set-Cookie", c);

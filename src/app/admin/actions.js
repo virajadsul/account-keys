@@ -3,36 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/adminAuth";
-import { renewKey, setKeyActive, updateKeyDetails } from "@/lib/keysStore";
+import { adminSetAccountActive, adminSetKeyActive, adminSetPlan } from "@/lib/apiKeys";
+import { endAllSessions } from "@/lib/userAuth";
+import { sendKeyRevoked } from "@/lib/mailer";
+import { PLANS } from "@/lib/plans";
 
 async function requireAdmin(back) {
   if (!(await getAdminSession())) redirect(`/api/admin/refresh?next=${encodeURIComponent(back)}`);
 }
 
-export async function toggleKeyActive(formData) {
-  const id = String(formData.get("id") || "");
-  await requireAdmin(`/admin/keys/${id}`);
-  await setKeyActive(id, formData.get("active") === "true");
+export async function toggleKeyAction(formData) {
+  const userId = String(formData.get("userId") || "");
+  await requireAdmin(`/admin/users/${userId}`);
+  const active = formData.get("active") === "true";
+  const result = await adminSetKeyActive(String(formData.get("keyId") || ""), active);
+  // Alert the owner when a key is turned off (not when it's turned back on).
+  if (result?.user && !active) sendKeyRevoked(result.user, result.key, "admin");
   revalidatePath("/admin", "layout");
 }
 
-export async function renewKeyAction(formData) {
-  const id = String(formData.get("id") || "");
-  await requireAdmin(`/admin/keys/${id}`);
-  await renewKey(id, Number(process.env.KEY_VALIDITY_DAYS || 365));
+export async function toggleAccountAction(formData) {
+  const userId = String(formData.get("userId") || "");
+  await requireAdmin(`/admin/users/${userId}`);
+  const active = formData.get("active") === "true";
+  const user = await adminSetAccountActive(userId, active);
+  // A deactivated account is signed out everywhere; its keys stop at their next check.
+  if (user && !active) await endAllSessions(user._id);
   revalidatePath("/admin", "layout");
 }
 
-export async function saveKeyDetails(formData) {
-  const id = String(formData.get("id") || "");
-  await requireAdmin(`/admin/keys/${id}?edit=1`);
-  const name = String(formData.get("name") || "").trim();
-  const project = String(formData.get("project") || "").trim();
-  // Same limits as key generation (src/app/api/keys/route.js).
-  if (name.length < 2 || name.length > 80 || project.length < 2 || project.length > 80) {
-    redirect(`/admin/keys/${id}?edit=1&error=1`);
-  }
-  await updateKeyDetails(id, { name, project });
+export async function setPlanAction(formData) {
+  const userId = String(formData.get("userId") || "");
+  await requireAdmin(`/admin/users/${userId}`);
+  const plan = String(formData.get("plan") || "");
+  if (!PLANS[plan]) redirect(`/admin/users/${userId}?error=plan`);
+  await adminSetPlan(userId, plan);
   revalidatePath("/admin", "layout");
-  redirect(`/admin/keys/${id}`);
 }
